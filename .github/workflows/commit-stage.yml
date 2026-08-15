@@ -1,0 +1,24 @@
+name: Commit stage
+on: push
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu:latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout code
+        uses: action/checkout@v4
+      - name: Setup JDK
+        uses: action/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+#     Todo: add code security check step
+      - name: Build and test
+        run: |
+          chmod +x mvnw
+          ./mvnw install
