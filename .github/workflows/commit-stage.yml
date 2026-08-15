@@ -1,10 +1,15 @@
 name: Commit stage
 on: push
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: santosh07/config-service
+  VERSION: latest
+
 jobs:
   build:
     name: Build and Test
-    runs-on: ubuntu:latest
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       security-events: write
@@ -22,3 +27,37 @@ jobs:
         run: |
           chmod +x mvnw
           ./mvnw install
+  package:
+    name: Package and publish
+    if: ${{ github.ref == 'refs/heads/main' }}
+    needs: [ build ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: action/checkout@v4
+      - name: Set up JDK
+        uses: action/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+      - name: Build container
+        run: |
+          chmod +x mvnw
+          ./mvn spring-boot:build-image \
+            -Dspring-boot.build-image.imageName=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
+      - name: Log into container registry
+        uses: action/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish container image
+        run: docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
+        
+
+
+
